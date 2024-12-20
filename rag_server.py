@@ -16,7 +16,7 @@ import multiprocessing
 import gunicorn.app.base
 from typing import Optional
 app = FastAPI()
-load_dotenv('../.env')
+load_dotenv('.env')
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -94,7 +94,7 @@ def query_retrieval_service(query: str, k: int = 5) -> List[Dict[str, Any]]:
     try:
         encoded_query = quote(query)
         print(encoded_query)
-        response = requests.get(f"http://localhost:4004/v1/retrieve?query={encoded_query}&k={k}")
+        response = requests.get(f"http://0.0.0.0:4004/v1/retrieve?query={encoded_query}&k={k}")
         response.raise_for_status()
         return response.json()
     except Exception as e:
@@ -108,7 +108,7 @@ def query_retrieval_service2(query: str, k: int = 2) -> List[Dict[str, Any]]:
         print(query)
         encoded_query = quote(query)
         print(encoded_query)
-        response = requests.get(f"http://localhost:4006/v1/retrieve?query={encoded_query}&k={k}")
+        response = requests.get(f"http://0.0.0.0:4006/v1/retrieve?query={encoded_query}&k={k}")
         response.raise_for_status()
         return response.json()
     except Exception as e:

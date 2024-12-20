@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 import threading
 os.environ["PATHWAY_PERSISTENT_STORAGE"] = "./persistence_data"
 
-load_dotenv('../.env')
+load_dotenv('.env')
 # Configure text splitting parameters for document chunks
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=4000, chunk_overlap=800)
 
@@ -21,7 +21,7 @@ class DocumentProcessor:
     """
     A class to process documents and manage a document store server.
     """
-    def __init__(self, host: str = "127.0.0.1", port: int = 8001):
+    def __init__(self, host: str = "0.0.0.0", port: int = 8001):
         # Configure environment and logging
         os.environ["TESSDATA_PREFIX"] = "/opt/homebrew/Cellar/tesseract/5.5.0/share/tessdata"
         logging.basicConfig(
@@ -37,7 +37,7 @@ class DocumentProcessor:
         
         self.parser = parsers.ParseUnstructured(mode="paged")
         self.embedder = embedders.LiteLLMEmbedder(
-            capacity=30,
+            capacity=10,
             model='voyage/voyage-3',
             retry_strategy=ExponentialBackoffRetryStrategy(max_retries=6),
             cache_strategy=DiskCache(),
@@ -57,7 +57,7 @@ class DocumentProcessor:
                 object_id="1bmB1oKZ3J8_Onbd-pQKbhiBDLi8AGls9",
                 mode="streaming",
                 object_size_limit=None,
-                service_user_credentials_file="ugp-1-445117-9b6cfd54ed16.json",
+                service_user_credentials_file="ugp-1-445117-2e694ce1fbec.json",
                 with_metadata=True,
                 # file_name_pattern=['*pdf','*docx','*txt','*pptx','*ppt','*doc','*xlsx','*Google Docs','*Google Slides','*Google Sheets','*xls']
 

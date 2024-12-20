@@ -13,7 +13,10 @@ from dotenv import load_dotenv
 import threading
 os.environ["PATHWAY_PERSISTENT_STORAGE"] = "./persistence_data"
 
-load_dotenv('../.env')
+load_dotenv('.env')
+
+
+
 # Configure text splitting parameters for document chunks
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=4000, chunk_overlap=800)
 # /usr/share/tesseract-ocr/4.00/tessdata
@@ -23,7 +26,7 @@ class DocumentProcessor:
     A class to process documents and manage a document store server.
     """
 
-    def __init__(self, host: str = "127.0.0.1", port: int = 8001):
+    def __init__(self, host: str = "0.0.0.0", port: int = 8001):
         # Configure environment and logging
         os.environ["TESSDATA_PREFIX"] = "/opt/homebrew/Cellar/tesseract/5.5.0/share/tessdata"
         logging.basicConfig(
