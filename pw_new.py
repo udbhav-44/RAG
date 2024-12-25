@@ -54,7 +54,7 @@ class DocumentProcessor:
         """
 
         source1 = pw.io.fs.read(path=path1, with_metadata=True, format="binary", mode="streaming")  
-        path2 = "../pipeline/temp_rag_space"
+        path2 = "../3GPP-pipeline/temp_rag_space"
         source2 = pw.io.fs.read(path=path2, with_metadata=True, format="binary", mode="streaming")
 
 
@@ -100,7 +100,7 @@ class DocumentProcessor:
     
 def main():
     # Initialize data directory for document storage
-    data_dir = "../pipeline/Agents/LATS/temp_rag_space"
+    data_dir = "../3GPP-pipeline/Agents/LATS/temp_rag_space"
     os.makedirs(data_dir, exist_ok=True)
     
     # Set up and start servers
