@@ -47,6 +47,7 @@ class DocumentProcessor:
             retry_strategy=ExponentialBackoffRetryStrategy(max_retries=6),
             cache_strategy=DiskCache(),
         )
+        
 
     def initialize_vector_store(self, path1):
         """       
