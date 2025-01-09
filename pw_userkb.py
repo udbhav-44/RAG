@@ -38,7 +38,7 @@ class DocumentProcessor:
         self.parser = parsers.ParseUnstructured(mode="paged")
         self.embedder = embedders.LiteLLMEmbedder(
             capacity=10,
-            model='voyage/voyage-3',
+            model='voyage/voyage-3-large',
             retry_strategy=ExponentialBackoffRetryStrategy(max_retries=6),
             cache_strategy=DiskCache(),
         )
