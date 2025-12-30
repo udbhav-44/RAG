@@ -1,7 +1,6 @@
 import os
 import logging
 import pathway as pw
-from typing import List, Dict, Any
 from pathway.udfs import DiskCache, ExponentialBackoffRetryStrategy
 from pathway.xpacks.llm import embedders, llms, parsers, prompts
 from pathway.xpacks.llm.question_answering import AdaptiveRAGQuestionAnswerer
@@ -42,7 +41,7 @@ class DocumentProcessor:
         
         self.parser = parsers.ParseUnstructured(mode="paged")
         self.embedder = embedders.LiteLLMEmbedder(
-            capacity=30,
+            capacity=75,
             model='voyage/voyage-3-large',
             retry_strategy=ExponentialBackoffRetryStrategy(max_retries=6),
             cache_strategy=DiskCache(),
@@ -101,7 +100,7 @@ class DocumentProcessor:
     
 def main():
     # Initialize data directory for document storage
-    data_dir = "../3GPP-pipeline/Agents/LATS/temp_rag_space"
+    data_dir = "./uploads"
     os.makedirs(data_dir, exist_ok=True)
     
     # Set up and start servers

@@ -12,22 +12,26 @@ import os
 from openai import OpenAI
 from dotenv import load_dotenv
 import time 
-import multiprocessing
 import gunicorn.app.base
 from typing import Optional
 app = FastAPI()
 load_dotenv('.env')
-from fastapi.middleware.cors import CORSMiddleware
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.requests import Request
-from starlette.responses import Response
+
 
 # OpenAI client configuration
 endpoint = "https://models.inference.ai.azure.com"
 model_name = "gpt-4o-mini"
 
 api_key = os.getenv('OPEN_AI_API_KEY_30')
-client = OpenAI(api_key=api_key)
+deepseek_api_key = os.getenv('DEEPSEEK_API_KEY')
+
+def get_client(model: str):
+    if "deepseek" in model:
+        return OpenAI(api_key=deepseek_api_key, base_url="https://api.deepseek.com")
+    return OpenAI(api_key=api_key)
+
+client = get_client("gpt-4o-mini") # Default client
+
 
 # Add VoyageAI configuration
 VOYAGE_API_KEY = os.getenv("VOYAGE_API_KEY")
@@ -39,6 +43,7 @@ class Query(BaseModel):
     max_tokens: int = 1000
     num_docs: int = 5
     destination: Optional[str] = None 
+    model: Optional[str] = "gpt-4o-mini" 
 
 class AnswerResponse(BaseModel):
     answer: str
@@ -117,46 +122,60 @@ def query_retrieval_service2(query: str, k: int = 2) -> List[Dict[str, Any]]:
 
 def format_context(documents: List[Dict[str, Any]]) -> str:
     """
-    Format retrieved documents into context string
-    ."""
+    Format retrieved documents into a structured context string,
+    including metadata like document name, page number, and file type.
+    """
     formatted_docs = []
+    
     for i, doc in enumerate(documents, 1):
-        formatted_docs.append(f"Document {i} (Score: {doc.get('relevance_score', 'N/A')}):\n{doc.get('text', '')}")
+        meta = doc.get("metadata", {})
+        file_path = meta.get("path", "Unknown")
+        file_name = os.path.basename(file_path)
+        page_number = meta.get("page_number", "N/A")
+
+        formatted_docs.append(
+            f" **Name:** {file_name}\n"
+            f" **Page:** {page_number}\n"
+            f"---\n"
+            f"{doc.get('text', '').strip()}"
+        )
+
     return "\n\n".join(formatted_docs)
 
-def generate_answer_openai(query: str, source: str,retrieved_docs: List[Dict[str, Any]], max_tokens: int = 1000) -> str:
+def generate_answer_openai(query: str, source: str,retrieved_docs: List[Dict[str, Any]], max_tokens: int = 1000, model: str = "gpt-4o-mini") -> str:
     """
     Generate an answer using OpenAI model
     """
     try:
-        print(query)
+       
         context = format_context(retrieved_docs)
-        print(source)
+   
+        client = get_client(model)
         
         response = client.chat.completions.create(
             messages=[
                 {
                     "role": "system",
-                    "content": """You are a precise and factual research assistant. Answer questions based on the provided context.
+                    "content": """You are a precise and factual 3GPP research  assistant. Answer questions based on the provided context.
                     Important Instructions:
                     1. Base your answer on the provided context documents
-                    2. Search for additional facts if required
-                    3. THINK and REASON out your analysis while generating response. Do comparative and critical analysis if required.  
-                    4. Use quotes when directly quoting text
-                    5. If you find conflicting information, point it out 
-                    6. If the file name is 'uploads/Name.pdf', state the source as the link of google drive link of the pdf along with the page range from where the answer is extracted
-                    7. DO NOT GIVE THE SCORES OF THE DOCUMENTS, REMOVE THE SCORES IF PRESENT"""
+                    2. THINK and REASON out your analysis while generating response. Do comparative and critical analysis if required.  
+                    3. Use quotes when directly quoting text
+                    4. If you find conflicting information, point it out 
+                    5. Mention the name of the documents and the page number from where the answer is extracted
+                    6. DO NOT GIVE THE SCORES OF THE DOCUMENTS, REMOVE THE SCORES IF PRESENT"""
 
                 },
                 {
                     "role": "user",
-                    "content": f"""Context:\n{context}\n\nQuestion: {query}\n\n  .if its a url like https://bbcnews.com/ give it completely. If not a url then just mention the {source}  with relevant context from provided else dont add ANYTHING."""
+                    "content": f"""Context:\n{context}\n\nQuestion: {query}\n\n ."""
                 }
             ],
             temperature=0.3,
             top_p=0.9,
             max_tokens=max_tokens,
-            model=model_name
+            max_tokens=max_tokens,
+            model=model
         )
         
         return response.choices[0].message.content.strip()
@@ -209,7 +228,8 @@ async def generate(query_request: Query):
         query_request.query, 
         query_request.source, 
         reranked_docs,
-        query_request.max_tokens
+        query_request.max_tokens,
+        query_request.model
     )
     
     end = time.time()
