@@ -53,18 +53,21 @@ class DocumentProcessor:
         bm25 = TantivyBM25Factory(ram_budget=524288000, in_memory_index=True)
         factories = [usearch, bm25]
         retriever_factory = HybridIndexFactory(factories, k=60)
-        gdrive_source = pw.io.gdrive.read(
-                object_id="1bmB1oKZ3J8_Onbd-pQKbhiBDLi8AGls9",
-                mode="streaming",
-                object_size_limit=None,
-                service_user_credentials_file="ugp-1-445117-2e694ce1fbec.json",
-                with_metadata=True,
-                # file_name_pattern=['*pdf','*docx','*txt','*pptx','*ppt','*doc','*xlsx','*Google Docs','*Google Slides','*Google Sheets','*xls']
+        # gdrive_source = pw.io.gdrive.read(
+        #         object_id="1bmB1oKZ3J8_Onbd-pQKbhiBDLi8AGls9",
+        #         mode="streaming",
+        #         object_size_limit=None,
+        #         service_user_credentials_file="ugp-1-445117-2e694ce1fbec.json",
+        #         with_metadata=True,
+        #         # file_name_pattern=['*pdf','*docx','*txt','*pptx','*ppt','*doc','*xlsx','*Google Docs','*Google Slides','*Google Sheets','*xls']
 
-        )
+        # )
         self.vector_store = DocumentStore.from_langchain_components(
             retriever_factory=retriever_factory,
-            docs=[source1,gdrive_source],
+            docs=[
+                source1,
+                #   gdrive_source
+                  ],
             parser=self.parser,
             splitter=text_splitter,
         )
@@ -97,7 +100,7 @@ class DocumentProcessor:
     
 def main():
     # Initialize data directory for document storage
-    data_dir = "./uploads"
+    data_dir = "./user_uploads"
     os.makedirs(data_dir, exist_ok=True)
     
     # Set up and start servers

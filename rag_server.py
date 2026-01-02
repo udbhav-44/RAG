@@ -44,6 +44,7 @@ class Query(BaseModel):
     num_docs: int = 5
     destination: Optional[str] = None 
     model: Optional[str] = "gpt-4o-mini" 
+    user_id: Optional[str] = None
 
 class AnswerResponse(BaseModel):
     answer: str
@@ -120,6 +121,25 @@ def query_retrieval_service2(query: str, k: int = 2) -> List[Dict[str, Any]]:
         print(query)
         raise HTTPException(status_code=500, detail=f"Error querying retrieval service: {str(e)}")
 
+
+def _user_path_matches(metadata: Dict[str, Any], user_id: str) -> bool:
+    path = str(metadata.get("path", "")).replace("\\", "/").lower()
+    token = f"/user_uploads/{user_id}/".lower()
+    return token in path or path.startswith(f"user_uploads/{user_id}/".lower())
+
+
+def _filter_docs_for_user(documents: List[Dict[str, Any]], user_id: str) -> List[Dict[str, Any]]:
+    if not user_id:
+        return documents
+    filtered = []
+    for doc in documents:
+        if not isinstance(doc, dict):
+            continue
+        meta = doc.get("metadata", {}) if isinstance(doc.get("metadata"), dict) else {}
+        if _user_path_matches(meta, user_id):
+            filtered.append(doc)
+    return filtered
+
 def format_context(documents: List[Dict[str, Any]]) -> str:
     """
     Format retrieved documents into a structured context string,
@@ -174,7 +194,6 @@ def generate_answer_openai(query: str, source: str,retrieved_docs: List[Dict[str
             temperature=0.3,
             top_p=0.9,
             max_tokens=max_tokens,
-            max_tokens=max_tokens,
             model=model
         )
         
@@ -213,12 +232,24 @@ async def generate(query_request: Query):
     """
     start = time.time()
 
+    user_id = query_request.user_id
+    num_docs = int(query_request.num_docs)
     # Choose the appropriate retrieval service based on the destination
     if query_request.destination == "user":
-        print("hello this is destination")
-        retrieved_docs = query_retrieval_service2(query_request.query, str(query_request.num_docs))
+        retrieval_k = num_docs
+        if user_id:
+            retrieval_k = max(retrieval_k * 6, 20)
+            retrieval_k = min(retrieval_k, 120)
+        retrieved_docs = query_retrieval_service2(query_request.query, retrieval_k)
     else:
-        retrieved_docs = query_retrieval_service(query_request.query, query_request.num_docs)
+        retrieved_docs = query_retrieval_service(query_request.query, num_docs)
+
+    if user_id:
+        retrieved_docs = _filter_docs_for_user(retrieved_docs, user_id)
+        if not retrieved_docs:
+            return AnswerResponse(
+                answer="No relevant documents found for this user. Ask the user to upload relevant documents."
+            )
     print(retrieved_docs)
     # Rerank the retrieved documents
     reranked_docs = rerank_documents(query_request.query, retrieved_docs)
