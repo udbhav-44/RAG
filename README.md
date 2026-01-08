@@ -14,6 +14,17 @@ Both of them have 3 endpoints and run on their separate ports (4004 and 4006)  :
 2. `/v1/statistics`: Provides statistics about the document store
 3. `/v1/inputs`: Lists all documents in the store 
 
+## Running and restart behavior
+
+`start.py` is a simple runner that restarts `pw_new.py` if it exits with a non-zero code. It uses an exponential backoff between restarts. By default it runs the virtualenv at `./test/bin/python3`, so adjust `VENV_PYTHON` if your env lives elsewhere.
+
+Logging:
+- `pw_new.py` logs to `./logs/pw_new.log` (and stdout).
+- `start.py` logs to `./logs/pw_new_runner.log`.
+
+Tunable env vars:
+- `PW_NEW_LOG_DIR` to change the log folder.
+- `PW_NEW_RESTART_DELAY` and `PW_NEW_RESTART_MAX_DELAY` to control restart backoff (seconds).
 
 
 ## User Upload Server

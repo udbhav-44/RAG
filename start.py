@@ -1,27 +1,70 @@
-import subprocess
 import os
+import subprocess
 import time
-import traceback
+import logging
+from logging.handlers import RotatingFileHandler
 
-VENV_PYTHON = os.path.join("./test", "bin", "python3")  
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+VENV_PYTHON = os.path.join(BASE_DIR, "test", "bin", "python3")
+SCRIPT_PATH = os.path.join(BASE_DIR, "pw_new.py")
+INITIAL_RESTART_DELAY = float(os.getenv("PW_NEW_RESTART_DELAY", "5"))
+MAX_RESTART_DELAY = float(os.getenv("PW_NEW_RESTART_MAX_DELAY", "60"))
+
+LOG_DIR = os.getenv("PW_NEW_LOG_DIR", "./logs")
+LOG_FILE = os.path.join(LOG_DIR, "pw_new_runner.log")
+
+
+def setup_logging():
+    os.makedirs(LOG_DIR, exist_ok=True)
+    logger = logging.getLogger("pw_new_runner")
+    logger.setLevel(logging.INFO)
+    formatter = logging.Formatter(
+        fmt="%(asctime)s %(name)s %(levelname)s %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+
+    file_handler = RotatingFileHandler(LOG_FILE, maxBytes=2_000_000, backupCount=3)
+    file_handler.setFormatter(formatter)
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(formatter)
+
+    logger.handlers = []
+    logger.addHandler(file_handler)
+    logger.addHandler(stream_handler)
+    return logger
+
+
+logger = setup_logging()
+restart_delay = INITIAL_RESTART_DELAY
 
 while True:
+    process = None
     try:
-        print(f"Starting pw_new.py in {VENV_PYTHON}...")
-        process = subprocess.Popen([VENV_PYTHON, "pw_new.py"])
-        process.wait()
+        logger.info("Starting pw_new.py in %s", VENV_PYTHON)
+        process = subprocess.Popen([VENV_PYTHON, SCRIPT_PATH], cwd=BASE_DIR)
+        return_code = process.wait()
 
-        print("pw_new.py has exited.")
-        print("Restarting pw_new.py...")
-        time.sleep(5)  
+        if return_code == 0:
+            logger.info("pw_new.py exited cleanly with code 0; stopping.")
+            break
+
+        logger.error("pw_new.py exited with code %s; restarting in %.1fs", return_code, restart_delay)
+        time.sleep(restart_delay)
+        restart_delay = min(restart_delay * 2, MAX_RESTART_DELAY)
 
     except KeyboardInterrupt:
-        print("Received KeyboardInterrupt. Exiting...")
+        logger.info("Received KeyboardInterrupt. Exiting...")
+        if process and process.poll() is None:
+            process.terminate()
         break
     except subprocess.CalledProcessError as e:
-        print("An error occurred while running pw_new.py:")
-        print(e)
-        traceback.print_exc()
-        time.sleep(5)  # Wait before retrying
+        logger.error("An error occurred while running pw_new.py: %s", e)
+        logger.exception("Runner crash")
+        time.sleep(restart_delay)
+        restart_delay = min(restart_delay * 2, MAX_RESTART_DELAY)
+    except Exception:
+        logger.exception("Runner crash")
+        time.sleep(restart_delay)
+        restart_delay = min(restart_delay * 2, MAX_RESTART_DELAY)
     else:
         break  # Exit loop if the script runs successfully
