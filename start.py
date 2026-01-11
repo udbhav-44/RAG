@@ -5,8 +5,8 @@ import logging
 from logging.handlers import RotatingFileHandler
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-VENV_PYTHON = os.path.join(BASE_DIR, "test", "bin", "python3")
 SCRIPT_PATH = os.path.join(BASE_DIR, "pw_new.py")
+RUN_COMMAND = ["pathway", "spawn", "-n", "8", "python3", SCRIPT_PATH]
 INITIAL_RESTART_DELAY = float(os.getenv("PW_NEW_RESTART_DELAY", "5"))
 MAX_RESTART_DELAY = float(os.getenv("PW_NEW_RESTART_MAX_DELAY", "60"))
 
@@ -40,8 +40,8 @@ restart_delay = INITIAL_RESTART_DELAY
 while True:
     process = None
     try:
-        logger.info("Starting pw_new.py in %s", VENV_PYTHON)
-        process = subprocess.Popen([VENV_PYTHON, SCRIPT_PATH], cwd=BASE_DIR)
+        logger.info("Starting %s", " ".join(RUN_COMMAND))
+        process = subprocess.Popen(RUN_COMMAND, cwd=BASE_DIR)
         return_code = process.wait()
 
         if return_code == 0:
