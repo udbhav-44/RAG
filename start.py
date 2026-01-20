@@ -6,7 +6,22 @@ from logging.handlers import RotatingFileHandler
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SCRIPT_PATH = os.path.join(BASE_DIR, "pw_new.py")
-RUN_COMMAND = ["pathway", "spawn", "-n", "8", "python3", SCRIPT_PATH]
+VENV_PYTHON = os.getenv("VENV_PYTHON", os.path.join(BASE_DIR, "test", "bin", "python3"))
+PATHWAY_BIN = os.getenv("PATHWAY_BIN", os.path.join(BASE_DIR, "test", "bin", "pathway"))
+THREADS = os.getenv("PW_NEW_THREADS", "8")
+PROCESSES = os.getenv("PW_NEW_PROCESSES", "1")
+FIRST_PORT = os.getenv("PW_NEW_FIRST_PORT", "")
+
+def _pick_executable(candidate: str, fallback: str) -> str:
+    return candidate if os.path.exists(candidate) else fallback
+
+python_bin = _pick_executable(VENV_PYTHON, "python3")
+pathway_bin = _pick_executable(PATHWAY_BIN, "pathway")
+
+RUN_COMMAND = [pathway_bin, "spawn", "-t", str(THREADS), "-n", str(PROCESSES)]
+if FIRST_PORT:
+    RUN_COMMAND.extend(["--first-port", str(FIRST_PORT)])
+RUN_COMMAND.extend([python_bin, SCRIPT_PATH])
 INITIAL_RESTART_DELAY = float(os.getenv("PW_NEW_RESTART_DELAY", "5"))
 MAX_RESTART_DELAY = float(os.getenv("PW_NEW_RESTART_MAX_DELAY", "60"))
 
